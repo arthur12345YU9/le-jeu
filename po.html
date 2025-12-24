@@ -1,0 +1,133 @@
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ma Plateforme de Jeux Permanente</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; }
+        #menuPrincipal { padding: 40px; text-align: center; }
+        
+        /* Box de Stats */
+        .stats-bar { background: #1a1a1a; padding: 20px; border-bottom: 3px solid #2ecc71; margin-bottom: 30px; }
+        #scoreAffichage { color: #2ecc71; font-size: 2em; font-weight: bold; }
+
+        /* Bouton Vert Fluo pour Publier */
+        .btn-publier { 
+            background: #2ecc71; color: #000; padding: 20px 40px; border: none; 
+            border-radius: 10px; cursor: pointer; font-size: 1.2em; font-weight: bold;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); transition: 0.3s;
+        }
+        .btn-publier:hover { transform: scale(1.05); background: #27ae60; }
+
+        /* Grille des jeux publiés */
+        .grille-jeux { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; padding: 20px; }
+        .carte-jeu { background: #252525; border: 1px solid #444; padding: 20px; border-radius: 15px; position: relative; }
+        .carte-jeu h3 { margin-top: 0; color: #2ecc71; }
+
+        /* Écran de Jeu Plein Écran */
+        #ecranJeu { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 1000; }
+        #btnRetour { position: fixed; top: 20px; right: 20px; z-index: 1001; background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="menuPrincipal">
+        <div class="stats-bar">
+            <span>🏆 MEILLEUR SCORE ENREGISTRÉ : </span>
+            <span id="scoreAffichage">0</span>
+        </div>
+
+        <h1>MA STATION DE JEUX</h1>
+        <p>Tes jeux restent ici, même si tu fermes la page.</p>
+        
+        <br>
+        <label for="inputFichier" class="btn-publier">🚀 PUBLIER UN NOUVEAU JEU</label>
+        <input type="file" id="inputFichier" style="display:none" accept=".html">
+
+        <div class="grille-jeux" id="conteneurJeux">
+            </div>
+        
+        <button onclick="toutEffacer()" style="margin-top: 50px; background: none; border: 1px solid #444; color: #444; cursor: pointer;">Réinitialiser la plateforme</button>
+    </div>
+
+    <button id="btnRetour" style="display:none" onclick="fermerJeu()">❌ QUITTER LE JEU</button>
+    <div id="ecranJeu"></div>
+
+    <script>
+        const conteneurJeux = document.getElementById('conteneurJeux');
+        const scoreAffichage = document.getElementById('scoreAffichage');
+
+        // --- CHARGEMENT INITIAL (Dès que tu ouvres le site) ---
+        window.onload = function() {
+            // Charger le score
+            const saveScore = localStorage.getItem('monScoreGlobal');
+            if(saveScore) scoreAffichage.innerText = saveScore;
+
+            // Charger TOUS les jeux publiés
+            const jeuxSauvegardes = JSON.parse(localStorage.getItem('bibliothequeJeux') || "[]");
+            jeuxSauvegardes.forEach((jeu, index) => {
+                creerCarteJeu(jeu.nom, index);
+            });
+        };
+
+        // --- PUBLIER UN JEU ---
+        document.getElementById('inputFichier').addEventListener('change', function() {
+            const fichier = this.files[0];
+            if (!fichier) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const nouveauJeu = {
+                    nom: fichier.name,
+                    code: e.target.result
+                };
+
+                // Sauvegarder dans la liste des jeux
+                const biblio = JSON.parse(localStorage.getItem('bibliothequeJeux') || "[]");
+                biblio.push(nouveauJeu);
+                localStorage.setItem('bibliothequeJeux', JSON.stringify(biblio));
+
+                // Créer le visuel
+                creerCarteJeu(nouveauJeu.nom, biblio.length - 1);
+            };
+            reader.readAsText(fichier);
+        });
+
+        function creerCarteJeu(nom, index) {
+            const div = document.createElement('div');
+            div.className = 'carte-jeu';
+            div.innerHTML = `
+                <h3>${nom}</h3>
+                <p>Status: <span style="color: #2ecc71;">PUBLIÉ</span></p>
+                <button onclick="lancerJeu(${index})" style="width:100%; padding:10px; cursor:pointer; background:#2ecc71; border:none; border-radius:5px; font-weight:bold;">JOUER</button>
+            `;
+            conteneurJeux.appendChild(div);
+        }
+
+        // --- LANCER LE JEU ---
+        function lancerJeu(index) {
+            const biblio = JSON.parse(localStorage.getItem('bibliothequeJeux'));
+            const jeu = biblio[index];
+
+            document.getElementById('menuPrincipal').style.display = "none";
+            document.getElementById('ecranJeu').style.display = "block";
+            document.getElementById('btnRetour').style.display = "block";
+            
+            // Injection du code
+            document.getElementById('ecranJeu').innerHTML = jeu.code;
+        }
+
+        function fermerJeu() {
+            // On recharge simplement pour tout remettre à zéro proprement
+            location.reload();
+        }
+
+        function toutEffacer() {
+            if(confirm("Voulez-vous vraiment supprimer tous vos jeux publiés ?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
